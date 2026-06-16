@@ -916,7 +916,7 @@
                 const infoData = await infoRes.json();
                 document.getElementById('sensorName').innerText = infoData.channel[FIELD] || "Sensor";
                 const teamNameEl = document.getElementById('teamName');
-                teamNameEl.innerHTML = `Hemoterapia 💊: ${infoData.channel.name || "Sin nombre"}`;
+                teamNameEl.innerHTML = `Equipo: ${infoData.channel.name || "Sin nombre"}`;
                 teamNameEl.className = "tag Hemoterapia-tag";
 
                 currentFeeds = feeds.filter(f => parseFloat(f[FIELD]) !== -127);
