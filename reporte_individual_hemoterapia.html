@@ -439,7 +439,7 @@
         function cleanTextForPDF(text) {
             if (!text) return "";
             return text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F1E6}-\u{1F1FF}]/gu, '')
-                .replace(/[💉💊⚠️❄️🔥✅⚡📶📡]/gu, '')
+                .replace(/[💉💊⚠️❄️🔥✅⚡📶📡🩸]/gu, '')
                 .replace(/á/g, 'a').replace(/é/g, 'e').replace(/í/g, 'i').replace(/ó/g, 'o').replace(/ú/g, 'u')
                 .replace(/Á/g, 'A').replace(/É/g, 'E').replace(/Í/g, 'I').replace(/Ó/g, 'O').replace(/Ú/g, 'U')
                 .replace(/ñ/g, 'n').replace(/Ñ/g, 'N')
@@ -1066,7 +1066,7 @@
                 analisisBox.style.display = 'block';
                 recomBox.style.display = 'block';
             } else {
-                analisisCont.innerText = "No se registraron desvíos de temperatura en el período analizado. El equipo se mantuvo dentro del rango óptimo (2°C - 8°C).";
+                analisisCont.innerText = `No se registraron desvíos de temperatura en el período analizado. El equipo se mantuvo dentro del rango óptimo (${MIN}°C - ${MAX}°C).`;
                 recomCont.innerText = "• Continuar con el monitoreo habitual.\n• Mantener registro actualizado de temperaturas.\n• Realizar mantenimiento preventivo según calendario.";
                 analisisBox.style.display = 'block';
                 recomBox.style.display = 'block';
@@ -1125,7 +1125,7 @@
         // ============================================================
         function generarAnalisisAlertas(eventos) {
             if (!eventos || eventos.length === 0) {
-                return "No se registraron desvíos de temperatura en el período analizado. El equipo se mantuvo dentro del rango óptimo (2°C - 8°C).";
+                return `No se registraron desvíos de temperatura en el período analizado. El equipo se mantuvo dentro del rango óptimo (${MIN}°C - ${MAX}°C).`;
             }
             let totalDuracion = 0;
             let alertasAltas = 0;
