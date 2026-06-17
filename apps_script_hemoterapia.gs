@@ -7,15 +7,18 @@
 
 const CONFIG_HEMOTERAPIA = {
   folderPDF: '1__brzKuqkcTsLrkGXmytvu4Zi6i2DiTp', // Informes Técnicos Semanales
-  sheetId: '1iEeU75vdulN4GB2qsOkBkgvFfzlFg0s0', // Hoja de Cálculo Semanal
+  sheetId: '1iEeU75vdulN4GB2qsOkBkgvFfzlFg0s0',   // Hoja de Cálculo Semanal
   alertasFolder: '1JnneQj1-qY-gXi7LlwiWka1dbm8nVDuN' // Informes Técnicos (generados por usuario)
 };
 
 const SENSORES = [
-  { id: '2997598', k: 'N3K6K0KDN799WG75', n: 'Sangre Refrigerada', eq: 'Heladera Hemoterapia', field: 'field1', subtype: 'sangre' },
-  { id: '2997598', k: 'N3K6K0KDN799WG75', n: 'Plasma Congelado', eq: 'Freezer Hemoterapia', field: 'field2', subtype: 'plasma' }
+  { id: '2997598', k: 'N3K6K0KDN799WG75', n: 'Sangre Refrigerada', eq: 'Heladera Presvac NHC11182', field: 'field1', subtype: 'sangre' },
+  { id: '2997598', k: 'N3K6K0KDN799WG75', n: 'Plasma Congelado',   eq: 'Freezer Presvac NHC13784',  field: 'field2', subtype: 'plasma' }
 ];
 
+// =====================================================================
+// FUNCIÓN PRINCIPAL DEL ACTIVADOR SEMANAL
+// =====================================================================
 function iniciarReporteSemanal() {
   const properties = PropertiesService.getScriptProperties();
   properties.deleteProperty("CURRENT_PHASE");
@@ -39,15 +42,15 @@ function ejecutarReporteSemanal() {
         if (!data || !data.feeds || data.feeds.length === 0) return;
 
         const trazabilidad = "AUTO-SEM-HEMO-" + Utilities.formatDate(hoy, "GMT-3", "yyyyMMdd") + "-" + s.id + "-" + s.field;
-        const analizada = analizarDatos(data.feeds, s.field, s.subtype);
+        const analizada    = analizarDatos(data.feeds, s.field, s.subtype);
         const conectividad = analizarConectividad(data.feeds, s.field, s.subtype);
-        const grafico = generarGraficoCurva(data.feeds, s.field, s.n, s.subtype);
+        const grafico      = generarGraficoCurva(data.feeds, s.field, s.n, s.subtype);
 
         const pdfBlob = generarPDFOficial(s, fechaEmision, rangoTexto, trazabilidad, analizada, conectividad, grafico);
-        
+
         const carpeta = DriveApp.getFolderById(CONFIG_HEMOTERAPIA.folderPDF);
-        const file = carpeta.createFile(pdfBlob);
-        file.setName("Informe_Oficial_" + s.n.replace(/ /g,"_") + "_" + trazabilidad + ".pdf");
+        const file    = carpeta.createFile(pdfBlob);
+        file.setName("Informe_Oficial_" + s.n.replace(/ /g, "_") + "_" + trazabilidad + ".pdf");
         console.log(" -> PDF generado para: " + s.n);
       } catch (e) {
         console.error("  Error en " + s.n + ": " + e.message);
@@ -56,21 +59,23 @@ function ejecutarReporteSemanal() {
 
     properties.setProperty("CURRENT_PHASE", "sheet");
     crearTriggerDeContinuacion();
+    console.log("Fase PDFs completada. Generando planilla en 1 minuto...");
   } else {
     console.log("Iniciando Fase 2: Generación de Planilla Consolidada Hemoterapia...");
     const feedsPorSensor = [];
     SENSORES.forEach(s => {
       try {
         const data = fetchThingSpeakDataCompleto(s.id, s.k, 7);
-        if (data && data.feeds) {
-          feedsPorSensor.push({ sensor: s, feeds: data.feeds });
-        }
-      } catch (e) {}
+        if (data && data.feeds) feedsPorSensor.push({ sensor: s, feeds: data.feeds });
+      } catch (e) {
+        console.error("  Error obteniendo feeds para planilla, sensor " + s.n + ": " + e.message);
+      }
     });
 
     try {
       if (feedsPorSensor.length > 0) {
         generarSheetSemanal(feedsPorSensor, rangoTexto, hoy);
+        console.log(" -> Planilla consolidada creada exitosamente.");
       }
     } catch (e) {
       console.error("  Error al generar Sheet semanal: " + e.message);
@@ -78,6 +83,7 @@ function ejecutarReporteSemanal() {
 
     properties.deleteProperty("CURRENT_PHASE");
     eliminarTriggersDeContinuacion();
+    console.log("¡Reporte Semanal de Hemoterapia completado exitosamente!");
   }
 }
 
@@ -93,13 +99,17 @@ function eliminarTriggersDeContinuacion() {
   });
 }
 
+// =====================================================================
+// GENERACIÓN DE PDF OFICIAL
+// =====================================================================
 function generarPDFOficial(sensor, fecha, rango, trazabilidad, analizada, conectividad, grafico) {
-  const doc = DocumentApp.create('Temp_Reporte_' + sensor.n);
+  const doc  = DocumentApp.create('Temp_Reporte_' + sensor.n);
   const body = doc.getBody();
   body.setMarginLeft(20).setMarginRight(20).setMarginTop(20).setMarginBottom(20);
   const anchoMax = 555;
 
-  const logo = buscarLogoEnDrive("logo_rih.jpg");
+  // Encabezado con logo
+  const logo   = buscarLogoEnDrive("logo_rih.jpg");
   const header = doc.addHeader();
   if (logo) {
     const hp = header.appendParagraph("");
@@ -108,13 +118,15 @@ function generarPDFOficial(sensor, fecha, rango, trazabilidad, analizada, conect
   }
   header.appendHorizontalRule();
 
-  const t1 = body.appendParagraph("INFORME TÉCNICO DE CADENA DE FRÍO\nHEMOTERAPIA");
-  t1.setFontSize(14).setBold(true).setForegroundColor("#8b5cf6").setSpacingAfter(4);
+  // Título
+  const t1 = body.appendParagraph("INFORME TÉCNICO DE CADENA DE FRÍO - HEMOTERAPIA");
+  t1.setFontSize(14).setBold(true).setForegroundColor("#00384d").setSpacingAfter(4);
 
-  body.appendParagraph("Según Resolución MSAL 141/2007 y Ley 22.990")
+  body.appendParagraph("Según Resolución MSAL 536/2026 y Ley 22.990")
     .setFontSize(9).setItalic(true).setSpacingAfter(10);
 
-  body.appendParagraph("Dispositivo: " + sensor.n + " (" + (sensor.subtype === 'sangre' ? "2°C a 6°C" : "<= -18°C") + ")")
+  const rangoTemp = sensor.subtype === 'sangre' ? "2°C a 6°C" : "<= -18°C";
+  body.appendParagraph("Dispositivo: " + sensor.n + " (" + rangoTemp + ")")
     .setBold(true).setFontSize(11).setSpacingBefore(0).setSpacingAfter(2);
   body.appendParagraph("Equipo/Artefacto: " + sensor.eq)
     .setItalic(true).setFontSize(10).setSpacingAfter(2);
@@ -123,11 +135,13 @@ function generarPDFOficial(sensor, fecha, rango, trazabilidad, analizada, conect
   body.appendParagraph("Emisión: " + fecha + " | Trazabilidad: " + trazabilidad)
     .setFontSize(8).setSpacingAfter(10);
 
+  // Gráfico
   body.appendParagraph("CURVA TÉRMICA SEMANAL").setBold(true).setFontSize(10).setSpacingBefore(4).setSpacingAfter(4);
   const pChart = body.appendParagraph("");
   pChart.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
   pChart.appendInlineImage(grafico).setWidth(anchoMax).setHeight(300);
 
+  // Tabla de alertas
   body.appendParagraph("\n⚠️ ALERTAS Y RECUPERACIONES").setBold(true).setFontSize(10).setSpacingAfter(4);
   const tablaAlertas = [["Fecha y Hora", "Valor", "Estado", "Duración", "Pico Registrado"]];
   if (analizada.alertasFilas.length > 0) {
@@ -137,24 +151,25 @@ function generarPDFOficial(sensor, fecha, rango, trazabilidad, analizada, conect
   }
   estilizarTabla(body.appendTable(tablaAlertas));
 
+  // Eventos de conectividad
   body.appendParagraph("\n📡 EVENTOS DETECTADOS (>10 min sin datos)").setBold(true).setFontSize(10).setSpacingAfter(4);
   const tablaWifi = [["Inicio", "Fin", "Tipo de Corte", "T. Antes", "T. Desp.", "Duración"]];
   if (conectividad.filas.length > 0) {
     conectividad.filas.forEach(f => tablaWifi.push([f.inicio, f.fin, f.tipo, f.antes, f.despues, f.duracion]));
   } else {
-    tablaWifi.push(["-", "-", "✅ Sin interrupciones", "-", "-", "-"]);
+    tablaWifi.push(["-", "-", "✅ Sin interrupciones significativas", "-", "-", "-"]);
   }
   estilizarTabla(body.appendTable(tablaWifi));
 
+  // Análisis y recomendaciones
   body.appendParagraph("\nANÁLISIS TÉCNICO:").setBold(true).setFontSize(10);
   if (analizada.textoAnalisis) body.appendParagraph(analizada.textoAnalisis).setFontSize(9).setItalic(true);
-  
-  if (conectividad.analisis && conectividad.analisis !== "Sin problemas de conectividad.") {
+  if (conectividad.analisis && conectividad.analisis !== "Sin problemas de conectividad. Monitoreo continuo confirmado.") {
     body.appendParagraph("\nConectividad:").setBold(true).setFontSize(9);
     body.appendParagraph(conectividad.analisis).setFontSize(9).setItalic(true);
   }
 
-  body.appendParagraph("\nRECOMENDACIONES:").setBold(true).setFontSize(10).setForegroundColor("#8b5cf6");
+  body.appendParagraph("\nRECOMENDACIONES:").setBold(true).setFontSize(10).setForegroundColor("#00384d");
   body.appendParagraph(analizada.textoRecom + "\n• " + conectividad.recom).setFontSize(9);
 
   const pNota = body.appendParagraph("\n⚙️ NOTA TÉCNICA:");
@@ -165,6 +180,7 @@ function generarPDFOficial(sensor, fecha, rango, trazabilidad, analizada, conect
   pResp.setBold(true).setFontSize(9).setForegroundColor("#475569");
   body.appendParagraph(analizada.notaResponsabilidad).setFontSize(8).setItalic(true).setForegroundColor("#475569");
 
+  // Pie de página
   const footer = doc.addFooter();
   footer.appendHorizontalRule();
   const logoF = buscarLogoEnDrive("footer.jpg");
@@ -176,7 +192,7 @@ function generarPDFOficial(sensor, fecha, rango, trazabilidad, analizada, conect
 
   doc.saveAndClose();
   Utilities.sleep(2000);
-  
+
   let pdf = null;
   const docId = doc.getId();
   for (let i = 0; i < 3; i++) {
@@ -184,45 +200,58 @@ function generarPDFOficial(sensor, fecha, rango, trazabilidad, analizada, conect
       pdf = DriveApp.getFileById(docId).getAs('application/pdf');
       break;
     } catch (e) {
+      console.warn("Intento " + (i + 1) + " de generar PDF falló. Reintentando...");
       Utilities.sleep(3000);
     }
   }
   DriveApp.getFileById(docId).setTrashed(true);
+  if (!pdf) throw new Error("No se pudo generar el PDF por error de servidor en Google Drive.");
   return pdf;
 }
 
+// =====================================================================
+// ANÁLISIS DE CONECTIVIDAD
+// =====================================================================
 function analizarConectividad(feeds, field, subtype) {
   let filas = [];
   let totalMinutos = 0;
   const maxOk = subtype === 'sangre' ? 6.0 : -18.0;
-  const minOk = subtype === 'sangre' ? 2.0 : -99.0;
-  
+  const minOk = subtype === 'sangre' ? 2.0  : -99.0;
+
   for (let i = 1; i < feeds.length; i++) {
-    const d1 = new Date(feeds[i-1].created_at);
-    const d2 = new Date(feeds[i].created_at);
+    const d1   = new Date(feeds[i - 1].created_at);
+    const d2   = new Date(feeds[i].created_at);
     const diff = (d2 - d1) / 60000;
     if (diff > 10) {
-      const v1 = parseFloat(feeds[i-1][field]);
-      const v2 = parseFloat(feeds[i][field]);
+      const v1   = parseFloat(feeds[i - 1][field]);
+      const v2   = parseFloat(feeds[i][field]);
       const tipo = (v2 > maxOk || v2 < minOk) ? 'Corte Energía/Temperatura' : 'Corte WiFi';
       filas.push({
-        inicio: fmtFecha(d1).replace(/\/\d{4}/, ""),
-        fin: fmtFecha(d2).replace(/\/\d{4}/, ""),
-        tipo: tipo,
-        antes: isNaN(v1) ? "--" : v1.toFixed(1) + "°C",
-        despues: isNaN(v2) ? "--" : v2.toFixed(1) + "°C",
+        inicio:   fmtFecha(d1).replace(/\/\d{4}/, ""),
+        fin:      fmtFecha(d2).replace(/\/\d{4}/, ""),
+        tipo:     tipo,
+        antes:    isNaN(v1) ? "--" : v1.toFixed(1) + "°C",
+        despues:  isNaN(v2) ? "--" : v2.toFixed(1) + "°C",
         duracion: formatDur(diff)
       });
       totalMinutos += diff;
     }
   }
+
   return {
-    filas: filas,
-    analisis: filas.length > 0 ? \`Detectadas \${filas.length} interrupciones.\` : "Sin problemas de conectividad.",
-    recom: filas.length > 0 ? "Verificar red y posibles fallas de energía." : "Mantener condiciones actuales."
+    filas:   filas,
+    analisis: filas.length > 0
+      ? "Se detectaron " + filas.length + " " + (filas.length === 1 ? "interrupción" : "interrupciones") + " de datos.\n• Tiempo total sin datos: " + formatDur(totalMinutos) + "\n• Durante los cortes no se puede garantizar el control de la cadena de frío."
+      : "Sin problemas de conectividad. Monitoreo continuo confirmado.",
+    recom: filas.length > 0
+      ? "Verificar el estado del router y la conexión a internet.\n• Revisar la distancia entre el sensor y el punto de acceso WiFi.\n• Considerar registro manual de temperatura durante los períodos sin datos."
+      : "Mantener el equipo de red en condiciones óptimas para asegurar monitoreo continuo."
   };
 }
 
+// =====================================================================
+// ANÁLISIS DE DATOS TÉRMICOS
+// =====================================================================
 function analizarDatos(feeds, field, subtype) {
   const minOk = subtype === 'sangre' ? 2.0 : -99.0;
   const maxOk = subtype === 'sangre' ? 6.0 : -18.0;
@@ -230,11 +259,11 @@ function analizarDatos(feeds, field, subtype) {
   const alertasFilas = [];
   let enAlerta = false;
   let inicioAlerta = null;
-  let valorAlerta = null;
-  let tipoAlerta = null;
-  let picoValor = null;
-  let picoTs = null;
-  let stats = [];
+  let valorAlerta  = null;
+  let tipoAlerta   = null;
+  let picoValor    = null;
+  let picoTs       = null;
+  let stats        = [];
 
   const valores = feeds
     .map(f => ({ ts: new Date(f.created_at), val: parseFloat(f[field]) }))
@@ -242,105 +271,215 @@ function analizarDatos(feeds, field, subtype) {
 
   valores.forEach(punto => {
     const fuera = punto.val < minOk || punto.val > maxOk;
-    const tipo = punto.val > maxOk ? "ALTA" : (punto.val < minOk && minOk > -90) ? "BAJA" : null;
+    const tipo  = punto.val > maxOk ? "ALTA" : (punto.val < minOk ? "BAJA" : null);
 
     if (fuera && !enAlerta && tipo) {
-      enAlerta = true;
-      inicioAlerta = punto.ts;
-      valorAlerta = punto.val;
-      tipoAlerta = tipo;
-      picoValor = punto.val;
-      picoTs = punto.ts;
+      enAlerta      = true;
+      inicioAlerta  = punto.ts;
+      valorAlerta   = punto.val;
+      tipoAlerta    = tipo;
+      picoValor     = punto.val;
+      picoTs        = punto.ts;
     } else if (fuera && enAlerta) {
       if (tipoAlerta === "ALTA" && punto.val > picoValor) { picoValor = punto.val; picoTs = punto.ts; }
       if (tipoAlerta === "BAJA" && punto.val < picoValor) { picoValor = punto.val; picoTs = punto.ts; }
     } else if (!fuera && enAlerta) {
-      const dur = (punto.ts - inicioAlerta) / 60000;
-      const picoStr = picoValor !== null ? picoValor.toFixed(1) + "°C" : "--";
+      const dur    = (punto.ts - inicioAlerta) / 60000;
+      const picoStr = picoValor !== null ? picoValor.toFixed(1) + "°C (" + fmtFecha(picoTs) + ")" : "--";
       alertasFilas.push({
         h: fmtFecha(inicioAlerta),
         v: valorAlerta.toFixed(1) + "°C",
-        e: tipoAlerta === "ALTA" ? \`⚠️ Alta (>\${maxOk}°C)\` : \`⚠️ Baja (<\${minOk}°C)\`,
+        e: tipoAlerta === "ALTA" ? "⚠️ Alerta Alta (>" + maxOk + "°C)" : "⚠️ Alerta Baja (<" + minOk + "°C)",
         d: formatDur(dur),
         p: picoStr
       });
       stats.push({ s: tipoAlerta === "ALTA" ? "Alta" : "Baja", d: dur });
-      enAlerta = false;
+      enAlerta  = false;
       picoValor = null;
+      picoTs    = null;
     }
   });
 
   if (enAlerta && inicioAlerta) {
-    const ultimo = valores[valores.length - 1].ts;
-    const dur = (ultimo - inicioAlerta) / 60000;
+    const ultimo  = valores[valores.length - 1].ts;
+    const dur     = (ultimo - inicioAlerta) / 60000;
+    const picoStr = picoValor !== null ? picoValor.toFixed(1) + "°C (" + fmtFecha(picoTs) + ")" : "--";
     alertasFilas.push({
       h: fmtFecha(inicioAlerta),
       v: valorAlerta.toFixed(1) + "°C",
-      e: "⚠️ Alerta en curso",
+      e: (tipoAlerta === "ALTA" ? "⚠️ Alerta Alta (>" + maxOk + "°C)" : "⚠️ Alerta Baja (<" + minOk + "°C)") + " (en curso)",
       d: formatDur(dur),
-      p: "--"
+      p: picoStr
     });
     stats.push({ s: tipoAlerta === "ALTA" ? "Alta" : "Baja", d: dur });
   }
 
-  let textoAnalisis = "Estabilidad térmica confirmada.";
-  let textoRecom = "• Continuar monitoreo habitual.";
+  const tieneAltas = stats.some(s => s.s === 'Alta');
+  const tieneBajas = stats.some(s => s.s === 'Baja');
+  const durTotal   = stats.reduce((a, b) => a + b.d, 0);
+
+  let textoAnalisis = "Estabilidad térmica confirmada. Sin desvíos en el período.";
+  let textoRecom    = "• Continuar monitoreo habitual.\n• Realizar mantenimiento preventivo según calendario.\n• Verificar calibración del sensor periódicamente.";
+
   if (stats.length > 0) {
-    textoAnalisis = \`Detectados \${stats.length} desvíos.\n• Temperatura fuera del rango \${minOk} a \${maxOk}°C. Riesgo de degradación.\`;
-    textoRecom = "• Poner en cuarentena hemoderivados afectados.\n• Revisar equipo y contactar servicio técnico.";
+    textoAnalisis = "Se detectaron " + stats.length + " " + (stats.length === 1 ? "desvío térmico" : "desvíos térmicos") + " (duración total: " + formatDur(durTotal) + ").\n";
+    if (tieneAltas) textoAnalisis += "• Temperatura ALTA (>" + maxOk + "°C): riesgo de degradación de hemoderivados.\n";
+    if (tieneBajas) textoAnalisis += "• Temperatura BAJA (<" + minOk + "°C): riesgo de congelación de sangre refrigerada.\n";
+    if (durTotal < 30)        textoAnalisis += "Los desvíos fueron breves. Se recomienda monitorear las próximas horas.";
+    else if (durTotal < 120)  textoAnalisis += "Desvíos de moderada duración. Evaluar posible afectación de hemoderivados.";
+    else                      textoAnalisis += "Desvíos prolongados. Requiere evaluación técnica inmediata según Ley 22.990.";
+
+    textoRecom = "";
+    if (tieneAltas) {
+      textoRecom += "• Temperatura ALTA detectada: verificar sistema de refrigeración y sellado de puertas.\n";
+      textoRecom += "  → Poner en cuarentena los hemoderivados afectados con cartel 'NO USAR - EN EVALUACIÓN TÉRMICA'.\n";
+      textoRecom += "• Controlar termostato y estado del compresor.\n";
+      textoRecom += "• Evaluar aptitud de las unidades afectadas según protocolo de Hemoterapia.\n";
+      textoRecom += "  → La Res. MSAL 141/2007 exige evaluación documentada ante toda ruptura de cadena de frío.\n";
+    }
+    if (tieneBajas) {
+      textoRecom += "• Temperatura BAJA detectada: riesgo de congelación de glóbulos rojos (hemólisis).\n";
+      textoRecom += "  → La sangre refrigerada congelada debe descartarse de inmediato.\n";
+      textoRecom += "• Revisar configuración del termostato y separación del evaporador.\n";
+    }
+    textoRecom += "• Documentar el evento en el registro de incidencias de cadena de frío.\n";
+    textoRecom += "  → La normativa exige trazabilidad completa para auditorías sanitarias.\n";
   }
 
-  const notaTecnica = "Toda intervención debe quedar documentada con fecha, descripción y firma, conforme a la Ley 22.990.";
-  const notaResponsabilidad = "La responsabilidad recae sobre el Servicio de Hemoterapia. Ante incidentes, notificar inmediatamente al Director Técnico.";
+  const notaTecnica = "Ante cualquier desvío térmico o falla del equipo, la intervención correctiva debe ser realizada por personal técnico calificado (Técnico en Refrigeración matriculado o servicio técnico autorizado por el fabricante). Toda intervención debe quedar documentada con fecha, descripción y firma del responsable, conforme a la Res. MSAL N° 141/2007 (Buenas Prácticas de Hemoterapia) y la Ley Nacional de Sangre N° 22.990.";
+  const notaResponsabilidad = "La responsabilidad del cumplimiento de las condiciones de conservación y de la cadena de frío en el sector Hemoterapia recae sobre el Director Técnico de Hemoterapia, conforme a la Ley Nacional de Sangre N° 22.990. Ante cualquier incidente, el Director Técnico debe ser notificado de forma inmediata.";
 
   return { alertasFilas, textoAnalisis, textoRecom, notaTecnica, notaResponsabilidad };
 }
 
+// =====================================================================
+// GRÁFICO DE CURVA TÉRMICA
+// =====================================================================
 function generarGraficoCurva(feeds, field, nombre, subtype) {
-  const dataTable = Charts.newDataTable().addColumn(Charts.ColumnType.STRING, "Tiempo").addColumn(Charts.ColumnType.NUMBER, "°C");
+  const dataTable = Charts.newDataTable()
+    .addColumn(Charts.ColumnType.STRING, "Tiempo")
+    .addColumn(Charts.ColumnType.NUMBER, "°C");
+
   let vals = feeds.map(f => parseFloat(f[field])).filter(v => !isNaN(v) && v !== -127);
   if (vals.length === 0) {
     dataTable.addRow(["Sin datos", 0]);
-    return Charts.newLineChart().setDataTable(dataTable).setDimensions(1200, 400).build().getAs('image/png');
+    return Charts.newLineChart().setDataTable(dataTable).setDimensions(2200, 520).setColors(["#3b82f6"]).build().getAs('image/png');
   }
 
   let yMin = subtype === 'plasma' ? -35 : 0;
   let yMax = subtype === 'plasma' ? -10 : 15;
 
-  const numPuntos = 500;
-  const step = Math.max(1, Math.floor(feeds.length / numPuntos));
+  const UMBRAL_GAP_MS = 10 * 60 * 1000;
+  const gapsReales = [];
+  for (let i = 1; i < feeds.length; i++) {
+    const t1 = new Date(feeds[i - 1].created_at).getTime();
+    const t2 = new Date(feeds[i].created_at).getTime();
+    if ((t2 - t1) > UMBRAL_GAP_MS) gapsReales.push({ desde: t1, hasta: t2 });
+  }
 
-  for (let i = 0; i < feeds.length; i += step) {
-    const f = feeds[i];
-    const val = parseFloat(f[field]);
-    if (!isNaN(val) && val !== -127) {
-      dataTable.addRow([fmtFecha(new Date(f.created_at)).replace(/\/\d{4}/, ""), val]);
+  const numPuntos = 800;
+  const step      = Math.max(1, Math.floor(feeds.length / numPuntos));
+  const muestreados = [];
+  for (let i = 0; i < feeds.length; i += step) muestreados.push(feeds[i]);
+
+  let ultimoTsValido = null;
+  for (let i = 0; i < muestreados.length; i++) {
+    const f    = muestreados[i];
+    const val  = parseFloat(f[field]);
+    const date = new Date(f.created_at);
+    if (isNaN(date.getTime())) continue;
+    const esInvalido = isNaN(val) || val === -127;
+    if (ultimoTsValido !== null) {
+      const hayGap = gapsReales.some(g => g.desde >= ultimoTsValido && g.hasta <= date.getTime());
+      if (hayGap) dataTable.addRow([fmtFecha(date).replace(/\/\d{4}/, ""), null]);
+    }
+    if (esInvalido) {
+      dataTable.addRow([fmtFecha(date).replace(/\/\d{4}/, ""), null]);
+    } else {
+      dataTable.addRow([fmtFecha(date).replace(/\/\d{4}/, ""), val]);
+      ultimoTsValido = date.getTime();
     }
   }
 
   return Charts.newLineChart()
     .setDataTable(dataTable)
     .setDimensions(2200, 520)
-    .setColors(["#8b5cf6"])
-    .setOption("vAxis", { viewWindow: { min: yMin, max: yMax } })
+    .setColors(["#3b82f6"])
+    .setOption("areaOpacity", 0.1)
+    .setOption("lineWidth", 1.5)
+    .setOption("vAxis", {
+      gridlines: { count: 8, color: '#cbd5e1' },
+      viewWindow: { min: yMin, max: yMax },
+      format: '#.0°C',
+      textStyle: { fontSize: 14, color: '#000000', bold: true },
+      textPosition: 'out'
+    })
+    .setOption("hAxis", {
+      slantedText: true,
+      slantedTextAngle: 45,
+      textStyle: { fontSize: 12, color: '#000000', bold: true },
+      gridlines: { color: 'none' },
+      showTextEvery: 60
+    })
+    .setOption("chartArea", { width: '94%', height: '70%', left: '4%', right: '1%', top: '4%' })
+    .setOption("legend", { position: 'none' })
+    .setOption("backgroundColor", "white")
     .build().getAs('image/png');
 }
 
+// =====================================================================
+// FUNCIONES DE UTILIDAD
+// =====================================================================
 function estilizarTabla(t) {
   const r0 = t.getRow(0);
-  for(let i=0; i<r0.getNumCells(); i++) r0.getCell(i).setBackgroundColor("#f1f5f9").setBold(true).setFontSize(9);
-  for(let i=1; i<t.getNumRows(); i++) {
-    for(let j=0; j<t.getRow(i).getNumCells(); j++) t.getRow(i).getCell(j).setFontSize(8);
+  for (let i = 0; i < r0.getNumCells(); i++) r0.getCell(i).setBackgroundColor("#f1f5f9").setBold(true).setFontSize(9);
+  for (let i = 1; i < t.getNumRows(); i++) {
+    for (let j = 0; j < t.getRow(i).getNumCells(); j++) t.getRow(i).getCell(j).setFontSize(8);
   }
 }
 
 function formatDur(m) {
-  return m < 60 ? Math.round(m) + "m" : Math.floor(m/60) + "h " + Math.round(m%60) + "m";
+  return m < 60 ? Math.round(m) + "m" : Math.floor(m / 60) + "h " + Math.round(m % 60) + "m";
 }
 
+/**
+ * Obtiene TODOS los feeds de los últimos N días usando paginación hacia atrás.
+ */
 function fetchThingSpeakDataCompleto(id, key, dias) {
-  const res = UrlFetchApp.fetch(\`https://api.thingspeak.com/channels/\${id}/feeds.json?api_key=\${key}&minutes=\${dias*1440}&results=8000\`);
-  return { feeds: JSON.parse(res.getContentText()).feeds || [] };
+  const ahora = new Date();
+  const inicio = new Date(ahora.getTime() - dias * 24 * 60 * 60 * 1000);
+
+  let todosLosFeeds = [];
+  let fechaHasta    = new Date(ahora);
+  let intentos      = 0;
+  const MAX_INTENTOS = 10;
+
+  while (intentos < MAX_INTENTOS) {
+    const startStr = Utilities.formatDate(inicio,     "GMT-3", "yyyy-MM-dd'T'HH:mm:ss");
+    const endStr   = Utilities.formatDate(fechaHasta, "GMT-3", "yyyy-MM-dd'T'HH:mm:ss");
+
+    const url  = "https://api.thingspeak.com/channels/" + id + "/feeds.json?api_key=" + key + "&start=" + startStr + "-03:00&end=" + endStr + "-03:00&results=8000";
+    const res  = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    const data = JSON.parse(res.getContentText());
+
+    if (!data.feeds || data.feeds.length === 0) break;
+
+    const primerTs = todosLosFeeds.length > 0 ? new Date(todosLosFeeds[0].created_at).getTime() : Infinity;
+    const nuevos   = data.feeds.filter(f => new Date(f.created_at).getTime() < primerTs);
+    todosLosFeeds  = nuevos.concat(todosLosFeeds);
+
+    if (data.feeds.length < 8000) break;
+
+    fechaHasta = new Date(new Date(data.feeds[0].created_at).getTime() - 60000);
+    if (fechaHasta <= inicio) break;
+
+    intentos++;
+    Utilities.sleep(500);
+  }
+
+  const inicioMs = inicio.getTime();
+  todosLosFeeds = todosLosFeeds.filter(f => new Date(f.created_at).getTime() >= inicioMs);
+  return { feeds: todosLosFeeds };
 }
 
 function buscarLogoEnDrive(n) {
@@ -353,30 +492,233 @@ function doPost(e) {
     const body = JSON.parse(e.postData.contents);
     if (body.action === 'guardarPDF') {
       const bytes = Utilities.base64Decode(body.pdfData);
-      const blob = Utilities.newBlob(bytes, 'application/pdf', body.filename);
-      const file = DriveApp.getFolderById(CONFIG_HEMOTERAPIA.alertasFolder).createFile(blob);
-      return ContentService.createTextOutput(JSON.stringify({result: true, url: file.getUrl()})).setMimeType(ContentService.MimeType.JSON);
+      const blob  = Utilities.newBlob(bytes, 'application/pdf', body.filename);
+      const file  = DriveApp.getFolderById(CONFIG_HEMOTERAPIA.alertasFolder).createFile(blob);
+      return ContentService.createTextOutput(JSON.stringify({ result: true, url: file.getUrl() })).setMimeType(ContentService.MimeType.JSON);
     }
-    return ContentService.createTextOutput(JSON.stringify({result: false, error: "Acción no reconocida"})).setMimeType(ContentService.MimeType.JSON);
-  } catch(e) {
-    return ContentService.createTextOutput(JSON.stringify({result: false, error: e.message})).setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput(JSON.stringify({ result: false, error: "Acción no reconocida" })).setMimeType(ContentService.MimeType.JSON);
+  } catch (e) {
+    return ContentService.createTextOutput(JSON.stringify({ result: false, error: e.message })).setMimeType(ContentService.MimeType.JSON);
   }
 }
 
-function doGet(e) { return ContentService.createTextOutput("Vicus Hemoterapia Online."); }
+function doGet(e) {
+  return ContentService.createTextOutput("Vicus Hemoterapia Online.");
+}
 
-function fmtFecha(date) {
+function fmtFecha(date, conSegundos) {
   const d = new Date(date.getTime() - 3 * 60 * 60 * 1000);
   const p = n => String(n).padStart(2, '0');
-  return \`\${p(d.getUTCDate())}/\${p(d.getUTCMonth()+1)}/\${d.getUTCFullYear()} \${p(d.getUTCHours())}:\${p(d.getUTCMinutes())}\`;
+  const base = p(d.getUTCDate()) + "/" + p(d.getUTCMonth() + 1) + "/" + d.getUTCFullYear() + " " + p(d.getUTCHours()) + ":" + p(d.getUTCMinutes());
+  return conSegundos ? base + ':' + p(d.getUTCSeconds()) : base;
+}
+
+// =====================================================================
+// GENERACIÓN DE PLANILLA SEMANAL (GOOGLE SHEETS)
+// =====================================================================
+function abrirOCrearSheet(sheetFolderId, nombreBase) {
+  const carpeta = DriveApp.getFolderById(sheetFolderId);
+  const nombreSheet = "VICUS_" + nombreBase;
+
+  // Buscar si ya existe un Sheet en esa carpeta
+  const archivos = carpeta.getFilesByType(MimeType.GOOGLE_SHEETS);
+  while (archivos.hasNext()) {
+    const f = archivos.next();
+    if (f.getName() === nombreSheet) {
+      return SpreadsheetApp.openById(f.getId());
+    }
+  }
+
+  // No existe — crear uno nuevo dentro de la carpeta
+  const nuevaSS = SpreadsheetApp.create(nombreSheet);
+  const file = DriveApp.getFileById(nuevaSS.getId());
+  carpeta.addFile(file);
+  DriveApp.getRootFolder().removeFile(file);
+  return nuevaSS;
 }
 
 function generarSheetSemanal(feedsPorSensor, rangoTexto, fechaHoy) {
-  const ss = SpreadsheetApp.openById(CONFIG_HEMOTERAPIA.sheetId);
+  const ss         = abrirOCrearSheet(CONFIG_HEMOTERAPIA.sheetId, "Hemoterapia_Semanal");
   const nombreHoja = "Semana " + Utilities.formatDate(fechaHoy, "GMT-3", "dd-MM-yyyy");
   const hojaExistente = ss.getSheetByName(nombreHoja);
   if (hojaExistente) ss.deleteSheet(hojaExistente);
   const hoja = ss.insertSheet(nombreHoja);
 
-  hoja.getRange("A1").setValue("REGISTRO SEMANAL DE TEMPERATURAS - HEMOTERAPIA").setFontWeight("bold").setFontColor("#8b5cf6");
+  hoja.getRange("A1").setValue("REGISTRO SEMANAL DE TEMPERATURAS - HEMOTERAPIA")
+      .setFontSize(13).setFontWeight("bold").setFontColor("#00384d");
+  hoja.getRange("A2").setValue("Período: " + rangoTexto).setFontSize(10).setFontStyle("italic");
+  hoja.getRange("A3").setValue("Generado: " + fmtFecha(fechaHoy)).setFontSize(9).setFontColor("#64748b");
+
+  // Encabezados dinámicos
+  const encabezados = ["Fecha / Hora"];
+  feedsPorSensor.forEach(fs => {
+    encabezados.push(fs.sensor.n + "\n(" + fs.sensor.eq + ")");
+  });
+
+  const filaEncabezado = 5;
+  const rangoEnc = hoja.getRange(filaEncabezado, 1, 1, encabezados.length);
+  rangoEnc.setValues([encabezados]);
+  rangoEnc.setBackground("#00384d").setFontColor("#ffffff").setFontWeight("bold")
+          .setFontSize(10).setWrap(true).setVerticalAlignment("middle")
+          .setHorizontalAlignment("center");
+  hoja.setRowHeight(filaEncabezado, 45);
+
+  // Unificar timestamps agrupando por minuto
+  const mapaTemp = {};
+  feedsPorSensor.forEach((fs, idx) => {
+    fs.feeds.forEach(feed => {
+      const val = parseFloat(feed[fs.sensor.field]);
+      if (isNaN(val) || val === -127) return;
+      const d     = new Date(feed.created_at);
+      const clave = fmtFecha(d);
+      if (!mapaTemp[clave]) mapaTemp[clave] = { fecha: clave, valores: {} };
+      if (mapaTemp[clave].valores[idx] !== undefined) {
+        mapaTemp[clave].valores[idx] = (mapaTemp[clave].valores[idx] + val) / 2;
+      } else {
+        mapaTemp[clave].valores[idx] = val;
+      }
+    });
+  });
+
+  const claves = Object.keys(mapaTemp).sort((a, b) => {
+    const toDate = s => {
+      const [fecha, hora] = s.split(' ');
+      const [dd, mm, yy]  = fecha.split('/');
+      return new Date(yy + "-" + mm + "-" + dd + "T" + hora + ":00");
+    };
+    return toDate(a) - toDate(b);
+  });
+
+  const filas = claves.map(clave => {
+    const entrada = mapaTemp[clave];
+    const fila    = [entrada.fecha];
+    feedsPorSensor.forEach((_, idx) => {
+      const v = entrada.valores[idx];
+      fila.push(v !== undefined ? Math.round(v * 100) / 100 : "");
+    });
+    return fila;
+  });
+
+  if (filas.length > 0) {
+    const filaInicio = filaEncabezado + 1;
+    
+    // Asegurar que la hoja tenga suficientes filas para los datos + el resumen
+    const requiredRows = filaInicio + filas.length + 10;
+    if (hoja.getMaxRows() < requiredRows) {
+      hoja.insertRowsAfter(hoja.getMaxRows(), requiredRows - hoja.getMaxRows());
+    }
+
+    hoja.getRange(filaInicio, 1, filas.length, encabezados.length).setValues(filas);
+
+    // Formato condicional por sensor (rango según subtype)
+    const todasLasReglas = [];
+    feedsPorSensor.forEach((fs, idx) => {
+      const col      = idx + 2;
+      const rangoCol = hoja.getRange(filaInicio, col, filas.length, 1);
+      const maxOk    = fs.sensor.subtype === 'plasma' ? -18.0 : 6.0;
+      const minOk    = fs.sensor.subtype === 'plasma' ? -90.0 : 2.0;
+
+      todasLasReglas.push(SpreadsheetApp.newConditionalFormatRule()
+        .whenNumberGreaterThan(maxOk)
+        .setBackground("#fecaca").setFontColor("#dc2626")
+        .setRanges([rangoCol]).build());
+
+      todasLasReglas.push(SpreadsheetApp.newConditionalFormatRule()
+        .whenNumberLessThan(minOk)
+        .setBackground("#bfdbfe").setFontColor("#1d4ed8")
+        .setRanges([rangoCol]).build());
+    });
+    hoja.setConditionalFormatRules(todasLasReglas);
+
+    hoja.setColumnWidth(1, 140);
+    feedsPorSensor.forEach((_, idx) => hoja.setColumnWidth(idx + 2, 130));
+
+    // Optimización del fondo cebra: una sola llamada a setBackgrounds
+    const colorMatrix = [];
+    for (let i = 0; i < filas.length; i++) {
+      const color = i % 2 === 0 ? "#f8fafc" : "#ffffff";
+      colorMatrix.push(Array(encabezados.length).fill(color));
+    }
+    hoja.getRange(filaInicio, 1, filas.length, encabezados.length).setBackgrounds(colorMatrix);
+
+    hoja.getRange(filaInicio, 2, filas.length, feedsPorSensor.length)
+        .setHorizontalAlignment("center").setNumberFormat("0.00");
+  }
+
+  // Resumen estadístico
+  const filaResumen = filaEncabezado + filas.length + 2;
+  hoja.getRange(filaResumen, 1).setValue("RESUMEN ESTADÍSTICO")
+      .setFontWeight("bold").setFontColor("#00384d").setFontSize(10);
+
+  const etiquetas = ["Mínimo (°C)", "Máximo (°C)", "Promedio (°C)", "Lecturas totales"];
+  etiquetas.forEach((etiq, i) => {
+    hoja.getRange(filaResumen + 1 + i, 1).setValue(etiq).setFontWeight("bold");
+  });
+
+  feedsPorSensor.forEach((fs, idx) => {
+    const col    = idx + 2;
+    const valores = filas
+      .map(f => f[col - 1])
+      .filter(v => v !== "" && !isNaN(v))
+      .map(Number);
+
+    if (valores.length > 0) {
+      const minVal = Math.min(...valores);
+      const maxVal = Math.max(...valores);
+      const avg    = Math.round((valores.reduce((a, b) => a + b, 0) / valores.length) * 100) / 100;
+      hoja.getRange(filaResumen + 1, col).setValue(minVal);
+      hoja.getRange(filaResumen + 2, col).setValue(maxVal);
+      hoja.getRange(filaResumen + 3, col).setValue(avg);
+      hoja.getRange(filaResumen + 4, col).setValue(valores.length);
+    } else {
+      hoja.getRange(filaResumen + 1, col).setValue("--");
+      hoja.getRange(filaResumen + 2, col).setValue("--");
+      hoja.getRange(filaResumen + 3, col).setValue("--");
+      hoja.getRange(filaResumen + 4, col).setValue(0);
+    }
+  });
+
+  hoja.getRange(filaResumen + 1, 1, 4, encabezados.length)
+      .setBackground("#f1f5f9").setBorder(true, true, true, true, true, true);
+  hoja.setFrozenRows(filaEncabezado);
+
+  console.log("Sheet semanal generado: " + nombreHoja + " (" + filas.length + " registros)");
+}
+
+/** Convierte número de columna a letra (1→A, 2→B, 27→AA, etc.) */
+function columnToLetter(col) {
+  let letter = '';
+  while (col > 0) {
+    const mod = (col - 1) % 26;
+    letter = String.fromCharCode(65 + mod) + letter;
+    col    = Math.floor((col - 1) / 26);
+  }
+  return letter;
+}
+
+/**
+ * Función de prueba — ejecutar desde el editor de Apps Script
+ * para generar el Sheet semanal sin esperar el trigger automático.
+ */
+function probarSheetSemanal() {
+  const hoy           = new Date();
+  const haceSieteDias = new Date(hoy.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const rangoTexto    = Utilities.formatDate(haceSieteDias, "GMT-3", "dd/MM/yyyy") + " - " + Utilities.formatDate(hoy, "GMT-3", "dd/MM/yyyy");
+
+  const feedsPorSensor = [];
+  SENSORES.forEach(s => {
+    try {
+      const data = fetchThingSpeakDataCompleto(s.id, s.k, 7);
+      if (!data || !data.feeds || data.feeds.length === 0) return;
+      feedsPorSensor.push({ sensor: s, feeds: data.feeds });
+    } catch (e) {
+      console.error("Error cargando sensor " + s.n + ": " + e.message);
+    }
+  });
+
+  if (feedsPorSensor.length === 0) {
+    console.error("No se obtuvieron datos de ningún sensor.");
+    return;
+  }
+  generarSheetSemanal(feedsPorSensor, rangoTexto, hoy);
 }
