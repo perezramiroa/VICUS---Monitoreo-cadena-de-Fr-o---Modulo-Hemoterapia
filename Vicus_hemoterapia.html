@@ -167,7 +167,7 @@
       border-radius: 8px;
       overflow: hidden;
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-      border-left: 6px solid #8b5cf6; /* Color Hemoterapia */
+      border-left: 6px solid #00384d; /* Color Hemoterapia */
       transition: box-shadow 0.2s;
     }
 
@@ -211,7 +211,7 @@
       border-radius: 12px;
       font-weight: 600;
       background-color: rgba(139, 92, 246, 0.15);
-      color: #8b5cf6;
+      color: #00384d;
       display: inline-flex;
       align-items: center;
       gap: 4px;
@@ -236,6 +236,7 @@
       display: flex;
       flex-direction: column;
       border: 1px solid #e2e8f0;
+      min-width: 0;
     }
 
     .sensor-card.danger {
@@ -248,6 +249,7 @@
       color: #475569;
       margin-bottom: 8px;
       display: flex;
+      word-break: break-word;
       align-items: center;
       justify-content: center;
     }
@@ -268,7 +270,7 @@
       padding: 6px;
       width: 100%;
       border: none;
-      background: #8b5cf6; /* Color Hemoterapia */
+      background: #00384d; /* Color Hemoterapia */
       color: white;
       border-radius: 6px;
       cursor: pointer;
@@ -364,7 +366,7 @@
 
     /* ── Botón y Modal Protocolo ── */
     .btn-protocolo {
-      background: #8b5cf6;
+      background: #00384d;
       color: white;
       padding: 12px 20px;
       border: none;
@@ -396,7 +398,7 @@
       box-shadow: 0 10px 30px rgba(0,0,0,0.2);
       margin: auto;
     }
-    .protocolo-modal h2 { color: #8b5cf6; font-size: 1.2rem; margin-bottom: 4px; }
+    .protocolo-modal h2 { color: #00384d; font-size: 1.2rem; margin-bottom: 4px; }
     .protocolo-modal .subtitulo { font-size: 0.85rem; color: #64748b; font-style: italic; margin-bottom: 20px; }
     .protocolo-seccion { margin-bottom: 20px; }
     .protocolo-seccion h3 { font-size: 1rem; margin-bottom: 10px; padding: 6px 10px; border-radius: 6px; }
@@ -486,19 +488,19 @@
       </div>
       
       <!-- SECCIÓN 1: NORMATIVA NACIONAL -->
-      <div style="background:#f8fafc; border-left:4px solid #8b5cf6; padding:20px; border-radius:8px; margin-bottom:20px;">
-        <h2 style="font-size:20px; margin-bottom:16px; color:#8b5cf6;">1. Normativa Nacional</h2>
+      <div style="background:#f8fafc; border-left:4px solid #00384d; padding:20px; border-radius:8px; margin-bottom:20px;">
+        <h2 style="font-size:20px; margin-bottom:16px; color:#00384d;">1. Normativa Nacional Vigente</h2>
         <div style="background:white; padding:16px; border-radius:8px; margin-bottom:16px; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
-          <strong>Ley Nacional N° 22.990 (1983) – "Ley de Sangre"</strong>
-          <p style="margin:8px 0;">Establece que la sangre y sus derivados son bienes de uso público, no comercializables. Regula la conservación de productos biológicos.</p>
+          <strong>Ley Nacional N° 22.990 – "Ley de Sangre"</strong>
+          <p style="margin:8px 0;">Marco normativo fundamental que regula el sistema nacional de sangre y la protección de los donantes y receptores, exigiendo estrictos estándares de calidad y conservación.</p>
         </div>
         <div style="background:white; padding:16px; border-radius:8px; margin-bottom:16px; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
-          <strong>Resolución MSAL N° 141/2007</strong>
-          <p style="margin:8px 0;">Reglamento Técnico de Buenas Prácticas en Hemoterapia. Define rangos de temperatura críticos: Sangre (2–6°C), Plasma (≤ –18°C).</p>
+          <strong>Resolución MSAL N° 536/2026 (Actualización)</strong>
+          <p style="margin:8px 0;">Nuevas Normas Técnicas y Administrativas de la Especialidad Hemoterapia. Establece la obligatoriedad del monitoreo continuo, trazabilidad documentada y estrictos rangos de temperatura: Sangre (2–6°C) y Plasma (≤ –18°C o inferior). Toda unidad fuera de rango debe ser puesta en cuarentena inmediata.</p>
         </div>
         <div style="background:white; padding:16px; border-radius:8px; margin-bottom:16px; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
-          <strong>ANMAT – Disposición N° 10.872/2020</strong>
-          <p style="margin:8px 0;">Buenas Prácticas de Almacenamiento y Distribución de Productos Biológicos y Hemoderivados.</p>
+          <strong>Protocolo Provincial (Neuquén)</strong>
+          <p style="margin:8px 0;">Lineamientos de la Dirección de Medicina Transfusional orientados a asegurar la integridad funcional de los hemocomponentes en todo el territorio provincial.</p>
         </div>
       </div>
     </div>
@@ -510,7 +512,7 @@
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
         <div>
           <h2>Protocolo de Acción ante Desvíos de Temperatura</h2>
-          <div class="subtitulo">Basado en Buenas Prácticas de Hemoterapia (Res. 141/2007)</div>
+          <div class="subtitulo">Basado en Buenas Prácticas de Hemoterapia (Res. MSAL 536/2026)</div>
         </div>
         <button onclick="toggleProtocolo()" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:#94a3b8;">✕</button>
       </div>
@@ -571,7 +573,7 @@
       { id: '2997598', k: 'N3K6K0KDN799WG75', n: 'Hemoterapia Principal', type: 'hemoterapia', fields: ['field1', 'field2'], subtypes: {field1: 'sangre', field2: 'plasma'} }
     ];
 
-    let db; try { db = JSON.parse(localStorage.getItem('iot_db_hemoterapia')); if (!Array.isArray(db) || db.length === 0) throw new Error(); } catch (e) { db = JSON.parse(JSON.stringify(CANALES_DEFAULT)); localStorage.setItem('iot_db_hemoterapia', JSON.stringify(db)); }
+    let db; try { db = JSON.parse(localStorage.getItem('iot_db_hemoterapia_v2')); if (!Array.isArray(db) || db.length === 0) throw new Error(); } catch (e) { db = JSON.parse(JSON.stringify(CANALES_DEFAULT)); localStorage.setItem('iot_db_hemoterapia_v2', JSON.stringify(db)); }
 
     function init() {
       render();
@@ -641,7 +643,7 @@
     }
 
     function save() {
-      localStorage.setItem('iot_db_hemoterapia', JSON.stringify(db));
+      localStorage.setItem('iot_db_hemoterapia_v2', JSON.stringify(db));
     }
 
     function render() {
