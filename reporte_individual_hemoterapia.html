@@ -526,7 +526,7 @@
                 doc.setFontSize(10);
                 doc.setFont('helvetica', 'italic');
                 doc.setTextColor(100);
-                doc.text("Segun Disposicion ANMAT 10.872/2020", margin, yPos);
+                doc.text("Segun Resolucion MSAL 536/2026 y Ley Nacional de Sangre 22.990", margin, yPos);
                 yPos += 12;
                 doc.setFont('helvetica', 'bold');
                 doc.setFontSize(12);
@@ -535,6 +535,18 @@
                 yPos += 6;
                 doc.setFont('helvetica', 'normal');
                 doc.text('Equipo / Heladera: ' + teamName, margin, yPos);
+                yPos += 6;
+                let startStr = "", endStr = "";
+                if (CUSTOM_START && CUSTOM_END) {
+                    startStr = CUSTOM_START.split('T')[0].split('-').reverse().join('/');
+                    endStr = CUSTOM_END.split('T')[0].split('-').reverse().join('/');
+                } else {
+                    let d = new Date();
+                    endStr = d.toLocaleDateString('es-AR');
+                    let dStart = new Date(d.getTime() - DAYS * 24 * 60 * 60 * 1000);
+                    startStr = dStart.toLocaleDateString('es-AR');
+                }
+                doc.text('Periodo: ' + startStr + ' al ' + endStr, margin, yPos);
                 yPos += 10;
                 doc.setFontSize(9);
                 doc.text(cleanTextForPDF(document.getElementById('reportId').innerText), margin, yPos);
@@ -752,7 +764,7 @@
                     '(Tecnico en Refrigeracion matriculado o servicio tecnico autorizado por el fabricante). ' +
                     'Ante fallas persistentes, contactar al Tecnico en Refrigeracion habilitado y notificar al Director Tecnico de Hemoterapia segun corresponda. ' +
                     'Toda intervencion debe quedar documentada con fecha, descripcion y firma del responsable, ' +
-                    'conforme a la Resolucion MSAL N 141/2007 (Buenas Practicas de Hemoterapia) y la Ley Nacional de Sangre N 22.990.'
+                    'conforme a la Resolucion MSAL 536/2026 (Nuevas Normas de Hemoterapia) y la Ley Nacional de Sangre N 22.990.'
                 );
                 const splitNota = doc.splitTextToSize(notaTecnica, pageWidth - (margin * 2));
                 doc.text(splitNota, margin, yPos);
@@ -1131,7 +1143,7 @@
             analisis += `• Incidentes de frío (<2°C): ${alertasBajas}\n`;
 
             if (alertasBajas > 0) {
-                analisis += "\n⚠ ADVERTENCIA CRÍTICA: Se detectó riesgo de CONGELACIÓN. La exposición a temperaturas inferiores a 2°C puede inactivar de forma irreversible medicamentos termolábiles (insulinas, vacunas, biotecnológicos). Requiere evaluación urgente.\n";
+                analisis += "\n⚠ ADVERTENCIA CRÍTICA: Se detectó riesgo de CONGELACIÓN. La exposición a temperaturas inferiores a 2°C puede inactivar de forma irreversible los hemocomponentes. Requiere evaluación urgente.\n";
             }
 
             if (totalDuracion < 30) {
@@ -1139,7 +1151,7 @@
             } else if (totalDuracion < 120) {
                 analisis += "\nDesvío térmico moderado. Se recomienda formalizar la novedad en el registro de incidencias y consultar con el responsable de Hemoterapia.";
             } else {
-                analisis += "\nDESVÍO CRÍTICO Y PROLONGADO: Apartar de forma preventiva los medicamentos afectados con rótulo 'NO DISPENSAR - EN EVALUACIÓN' y notificar de inmediato a la Jefatura de Hemoterapia. Evaluar según Disposición ANMAT 10.872/2020.";
+                analisis += "\nDESVÍO CRÍTICO Y PROLONGADO: Apartar de forma preventiva los hemocomponentes afectados con rótulo 'NO TRANSFUNDIR - EN EVALUACIÓN' y notificar de inmediato a la Jefatura de Hemoterapia. Evaluar según Ley Nacional de Sangre.";
             }
             return analisis;
         }
@@ -1155,11 +1167,11 @@
             if (tieneAltas) {
                 recom.push("• Calor excesivo: Comprobar el cierre magnético de las puertas y la limpieza del radiador externo del motor.");
                 recom.push("• Controlar el termostato y el estado del compresor (causas más frecuentes de temperatura alta).");
-                recom.push("• Evaluar la aptitud de los medicamentos afectados según Disposición ANMAT 10.872/2020.");
+                recom.push("• Evaluar la aptitud de los hemocomponentes afectados según Ley Nacional N° 22.990.");
             }
             if (tieneBajas) {
                 recom.push("• Frío extremo: Revisar la configuración del termostato del equipo.");
-                recom.push("• Verificar que los medicamentos no estén en contacto directo con el evaporador.");
+                recom.push("• Verificar que los hemocomponentes no estén en contacto directo con el evaporador.");
                 recom.push("• Controlar que la puerta no haya quedado abierta en ambiente frío.");
             }
             recom.push("• Registrar el incidente en el libro de control de temperatura firmado por el responsable.");
@@ -1179,7 +1191,7 @@
             if (totalDuracion < 60) {
                 analisis += "\nLos cortes de señal WiFi fueron breves y no comprometen la trazabilidad global. Se asume estabilidad del equipo.";
             } else {
-                analisis += "\nLas interrupciones prolongadas representan una brecha de trazabilidad. Es mandatorio constatar los registros de control manual para el período afectado, conforme a la Disposición ANMAT 10.872/2020.";
+                analisis += "\nLas interrupciones prolongadas representan una brecha de trazabilidad. Es mandatorio constatar los registros de control manual para el período afectado, conforme a la Resolucion MSAL 536/2026.";
             }
             return analisis;
         }
@@ -1194,7 +1206,7 @@
             recom += "• Asegurar la correcta orientación de la antena del datalogger y evitar barreras metálicas.\n";
             recom += "• Ante cortes de señal recurrentes, asentar lecturas de temperatura de forma manual en planillas oficiales cada 4 horas.";
             if (totalDuracion >= 60) {
-                recom += "\n• Implementar registro manual de temperatura durante períodos sin conectividad (exigido por Disposición ANMAT 10.872/2020).";
+                recom += "\n• Implementar registro manual de temperatura durante períodos sin conectividad (exigido por Res MSAL 536/2026).";
             }
             return recom;
         }
